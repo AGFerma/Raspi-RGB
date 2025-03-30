@@ -7,6 +7,13 @@ Repository for PSESI 2025 : Controlling ARGB with a raspberry pi to get a visual
   - [Summary](#summary)
   - [Technical objectives by order of priority](#technical-objectives-by-order-of-priority)
   - [Further developments](#further-developments)
+  - [Controlling the RGB strips](#controlling-the-rgb-strips)
+    - [The WS2812B protocol](#the-ws2812b-protocol)
+    - [Hardware modules on the Raspberry Pi](#hardware-modules-on-the-raspberry-pi)
+    - [PWM module](#pwm-module)
+      - [](#)
+  - [Gathering and formatting the data](#gathering-and-formatting-the-data)
+    - [](#-1)
 
 
 ## Summary
@@ -36,3 +43,18 @@ Targeting this idle use of power, we are tasked with two main objectives :
 ## Further developments
 The aforementionned developments will be carried out at user level, and will not touch the kernel in any way.  
 However, if time allows it, it may be useful to develop a custom kernel module in order to maybe reduce the overhead and lower, even marginally, the cpu usage of the raspberry pi.
+
+## Controlling the RGB strips
+### The WS2812B protocol
+In this project, we intend to control an adressable LED strip that follows the WS2812B specification : using 4 wires per LED (VDD, GND, Data_In, Data_Out), it is possible to feed each LED with 24 bits (8 per color) using a PWM encoding. This encoding requires a frequency of 800kHz (1.25µs/bit), and represents the logical 0 by a duty cycle of 32% +- 12%, and the logical 1 by a duty cycle of 64% +- 12%. As such, each LED requires 30µs to receive all its control bits.  
+After receiving those 24 bits, an LED starts to act as a passthrough, letting all subsequent bits go from Data_In to Data_Out, until a reset code (50µs or more at electrical level of GND) is sent.  
+### Hardware modules on the Raspberry Pi
+Since timings need to be extremely tight and regular, wa can't simply drive the GPIOs through software alone.  
+Instead, we need to use one or more hardware peripherals that ensure a steady clock, including most notably the PWM, PCM, or SPI modules.  
+We shall control those modules through the WiringPi library, which offers easy interfaces to hardware modules, without requiring a kernel driver.
+### PWM module
+
+#### 
+
+## Gathering and formatting the data
+###
