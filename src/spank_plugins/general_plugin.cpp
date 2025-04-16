@@ -9,7 +9,7 @@
 int slurm_spank_init(spank_t spank, int argc, char *argv[])
 {
     spank_context_t calling_context = spank_context(); // renvoie un élément de l'enum (on s'intéresse surtout à local, remote, et slurmd)
-    char *nodename_env_var = "SLURMD_NODENAME";
+    char nodename_env_var[] = "SLURMD_NODENAME";
     char *nodename;
     nodename = getenv(nodename_env_var);
 
@@ -31,7 +31,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         case 'n': // nvidia
             if (!(graphics_stats_prober = fork()))
             {
-                execl("nvidia_prober.x", nodename);
+                execl("nvidia_prober.x", nodename, (char*)NULL);
             }
             else // sauvegarde du pid pour kill la tâche lors de exit
             {
@@ -45,7 +45,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         case 'a': // amd
             if (!(graphics_stats_prober = fork()))
             {
-                execl("amd_prober.x", nodename);
+                execl("amd_prober.x", nodename, (char*)NULL);
             }
             else // sauvegarde du pid pour kill la tâche lors de exit
             {
@@ -59,7 +59,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         case 'i': // intel
             if (!(graphics_stats_prober = fork()))
             {
-                execl("intel_prober.x", nodename);
+                execl("intel_prober.x", nodename, (char*)NULL);
             }
             else // sauvegarde du pid pour kill la tâche lors de exit
             {
@@ -80,7 +80,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         std::cout << "Contexte slurmd (frontale) (init)" << std::endl;
         if (!(aggregator = fork()))
         {
-            execl("frontale.x", nodename);
+            execl("frontale.x", nodename, (char*)NULL);
         }
         else // sauvegarde du pid pour kill la tâche lors de exit
         {
