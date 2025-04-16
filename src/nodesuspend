@@ -1,0 +1,11 @@
+#!/bin/bash
+hosts=$(scontrol show hostnames "$1")
+adresses=$(scontrol getaddrs "$(hosts)")
+username="frontale"
+logfile=/var/log/power_save.log
+echo "$(date) Suspend invoked $0 $*" >>$logfile
+for addr in $adresses
+do
+        ssh "$username@$addr" sudo poweroff
+done
+exit 0

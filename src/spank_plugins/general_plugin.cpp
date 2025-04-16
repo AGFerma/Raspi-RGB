@@ -80,7 +80,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         std::cout << "Contexte slurmd (frontale) (init)" << std::endl;
         if (!(aggregator = fork()))
         {
-            execl("frontale.x", nodename, (char*)NULL);
+            execl("aggregator.x", nodename, (char*)NULL);
         }
         else // sauvegarde du pid pour kill la tâche lors de exit
         {
