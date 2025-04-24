@@ -78,7 +78,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
 
     case S_CTX_SLURMD:
         std::cout << "Contexte slurmd (frontale) (init)" << std::endl;
-        if (!(aggregator = fork()))
+        /*if (!(aggregator = fork()))
         {
             execl("aggregator.x", nodename, (char*)NULL);
         }
@@ -88,7 +88,7 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
             pid_file << aggregator << '\n'
                      << std::flush;
             pid_file.close();
-        }
+        }*/
         break;
 
     case S_CTX_JOB_SCRIPT:

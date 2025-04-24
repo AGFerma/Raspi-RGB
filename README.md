@@ -26,18 +26,18 @@ Targeting this idle use of power, we are tasked with two main objectives :
 
 ## Technical objectives by order of priority
 1. Controlling the ARGB strips
-   - [ ] Making one LED work : controlling its perceived intensity (through PWM) and color, as well as other effects like breathing, blinking, etc.
-   - [ ] Making all the LEDs of a strip work at once : ensuring that the addressing part of our algorithms work properly, ie if we want only one LED on in the middle, it must be alone in that state, and at the right place
-   - [ ] Interfacing multiples strips at the same time : either using more pins of the Raspberry Pi or multiplexing the output in order to control the strips of each level independantly
+   - [x] Making one LED work : controlling its perceived intensity (through PWM) and color, as well as other effects like breathing, blinking, etc.
+   - [x] Making all the LEDs of a strip work at once : ensuring that the addressing part of our algorithms work properly, ie if we want only one LED on in the middle, it must be alone in that state, and at the right place
+   - [x] Interfacing multiples strips at the same time : either using more pins of the Raspberry Pi or multiplexing the output in order to control the strips of each level independantly
 2. Gathering data from the cluster
-   - [ ] Polling approach : make the Raspberry Pi connect to the cluster and ask it about its activity level on a periodic basis
+   - [ ] ~~Polling approach : make the Raspberry Pi connect to the cluster and ask it about its activity level on a periodic basis~~
    OR
-   - [ ] Interrupt approach : make each cluster send data to the Raspberry pi, when there is a big enough activity change, including turnin on/off the cluster, and hysteresis management
+   - [ ] Interrupt approach : make each cluster send data to the Raspberry pi periodically~~, when there is a big enough activity change, including turnin on/off the cluster, and hysteresis management~~
 3. Putting it all together
    - [ ] Using the gathered data to control the strips : periodically update the pattern (polling) or change the pattern on demand (interrupt)
 4. Controlling the cluster
-   - [ ] Effectively ordering shut downs without disturbing the normal function of the cluster
-   - [ ] Using the gathered data from previous steps to establish the conditions for ordering a shutdown or a startup
+   - [x] Effectively ordering shut downs without disturbing the normal function of the cluster
+   - [ ] ~~Using the gathered data from previous steps to establish the conditions for ordering a shutdown or a startup~~
    - [ ] Establishing a user-friendly interface to customize varied parameters 
 
 ## Further developments
