@@ -26,48 +26,19 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
         break;
     case S_CTX_REMOTE:
         std::cout << "Contexte remote (init)" << std::endl;
+        system("sudo systemctl kill -s 10 cpu_prober.service");
         switch (nodename[4]) // selon la 5ème lettre du nom, on sait si c'est amd, nvidia, intel
         {
         case 'n': // nvidia
-            if (!(graphics_stats_prober = fork()))
-            {
-                execl("nvidia_prober.x", nodename, (char*)NULL);
-            }
-            else // sauvegarde du pid pour kill la tâche lors de exit
-            {
-                pid_file.open("pid_file.txt", std::ios::out);
-                pid_file << graphics_stats_prober << '\n'
-                         << std::flush;
-                pid_file.close();
-            }
+
             break;
 
         case 'a': // amd
-            if (!(graphics_stats_prober = fork()))
-            {
-                execl("amd_prober.x", nodename, (char*)NULL);
-            }
-            else // sauvegarde du pid pour kill la tâche lors de exit
-            {
-                pid_file.open("pid_file.txt", std::ios::out);
-                pid_file << graphics_stats_prober << '\n'
-                         << std::flush;
-                pid_file.close();
-            }
+
             break;
 
         case 'i': // intel
-            if (!(graphics_stats_prober = fork()))
-            {
-                execl("intel_prober.x", nodename, (char*)NULL);
-            }
-            else // sauvegarde du pid pour kill la tâche lors de exit
-            {
-                pid_file.open("pid_file.txt", std::ios::out);
-                pid_file << graphics_stats_prober << '\n'
-                         << std::flush;
-                pid_file.close();
-            }
+
             break;
         }
         break;
@@ -78,17 +49,6 @@ int slurm_spank_init(spank_t spank, int argc, char *argv[])
 
     case S_CTX_SLURMD:
         std::cout << "Contexte slurmd (frontale) (init)" << std::endl;
-        /*if (!(aggregator = fork()))
-        {
-            execl("aggregator.x", nodename, (char*)NULL);
-        }
-        else // sauvegarde du pid pour kill la tâche lors de exit
-        {
-            pid_file.open("pid_file.txt", std::ios::out);
-            pid_file << aggregator << '\n'
-                     << std::flush;
-            pid_file.close();
-        }*/
         break;
 
     case S_CTX_JOB_SCRIPT:
@@ -105,6 +65,8 @@ int slurm_spank_exit(spank_t spank, int argc, char *argv[])
     pid_t graphics_stats_prober, aggregator;
     std::string pid_str;
 
+    system("sudo systemctl kill -s 12 cpu_prober.service");     //suspension du daemon
+
     switch (calling_context)
     {
     case S_CTX_ERROR:
@@ -115,27 +77,16 @@ int slurm_spank_exit(spank_t spank, int argc, char *argv[])
         std::cout << "Contexte local (exit)" << std::endl;
         break;
 
-    case S_CTX_REMOTE:  //kill le prober
-        std::cout << "Contexte remote (exit)" << std::endl;
-        pid_file.open("pid_file.txt");
-        std::getline(pid_file, pid_str);
-        pid_file.close();
-        graphics_stats_prober = std::stoi(pid_str);
-        kill(graphics_stats_prober, SIGTERM);
+    case S_CTX_REMOTE:
+
         break;
 
     case S_CTX_ALLOCATOR:
         std::cout << "Contexte allocator (exit)" << std::endl;
         break;
 
-    case S_CTX_SLURMD:  //kill l'agrégateur
-        std::cout << "Contexte slurmd (frontale) (exit)" << std::endl;
-        std::cout << "Contexte remote (exit)" << std::endl;
-        pid_file.open("pid_file.txt");
-        std::getline(pid_file, pid_str);
-        pid_file.close();
-        aggregator = std::stoi(pid_str);
-        kill(aggregator, SIGTERM);
+    case S_CTX_SLURMD:
+
         break;
 
     case S_CTX_JOB_SCRIPT:

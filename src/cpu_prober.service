@@ -1,0 +1,11 @@
+[Unit]
+Description=CPU prober for RaspiRGB
+
+[Service]
+Type=forking
+
+User=rockefeller157
+Group=rockefeller157
+
+ExecStart=/usr/bin/CPU_prober.x -d 3000 -u rockefeller157 -h "cgmf.sytes.net" -p 18654 -l "/home/rockefeller157/testfifo"
+ExecStop=/bin/kill -15 -$MAINPID
