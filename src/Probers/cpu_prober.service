@@ -1,0 +1,14 @@
+[Unit]
+Description=CPU prober for RaspiRGB
+
+[Service]
+Type=simple
+
+User=argb
+Group=argb
+
+ExecStart=/usr/bin/CPU_prober.x -d 3000 -u argb -h "az4-n4090-rpi" -p 22 -l "/home/argb/fifo0"
+ExecStop=/bin/kill -15 -$MAINPID
+
+
+
