@@ -5,56 +5,111 @@ Repository for PSESI 2025 : Controlling ARGB with a raspberry pi to get a visual
 - [ARGB for power management](#argb-for-power-management)
   - [Table of contents](#table-of-contents)
   - [Summary](#summary)
-  - [Technical objectives by order of priority](#technical-objectives-by-order-of-priority)
-  - [Further developments](#further-developments)
-  - [Controlling the RGB strips](#controlling-the-rgb-strips)
-    - [The WS2812B protocol](#the-ws2812b-protocol)
-    - [Hardware modules on the Raspberry Pi](#hardware-modules-on-the-raspberry-pi)
-    - [PWM module](#pwm-module)
-      - [](#)
-  - [Gathering and formatting the data](#gathering-and-formatting-the-data)
-    - [](#-1)
+  - [Compiling](#compiling)
+    - [ARGB controller](#argb-controller)
+    - [CPU Prober](#cpu-prober)
+  - [Running](#running)
+    - [ARGB controller](#argb-controller-1)
+      - [Arguments description](#arguments-description)
+      - [Arguments full example](#arguments-full-example)
+    - [CPU Prober](#cpu-prober-1)
+      - [As a standalone program](#as-a-standalone-program)
+      - [Arguments description](#arguments-description-1)
+      - [Behaviour while running](#behaviour-while-running)
+      - [As a systemd service](#as-a-systemd-service)
 
 
 ## Summary
-As computing power advances, so does the power consumption linked to it.  
-Despite all the advancements in power efficiency, semiconductors still need a lot of power to operate, even when not actively used.  
-Targeting this idle use of power, we are tasked with two main objectives : 
-1. Using a raspberry pi, we shall implement algorithms and drivers that are able to control ARGB (short for Adressable Red-Green-Blue) LED strips depending on the current load of a given node, group of nodes, or the entire cluster;
-2. Using the same raspberry pi to order a node to shut down if the load gets low enough, and turn it back on as needed.
+Raspi RGB is a project aiming to provide a complete framework for linking CPU and GPU statistics to ARGB LED strips.  
+Is it built upon the rpi_ws281x library, which makes use of a Raspberry Pi PWM, SPI, and PCM hardware modules to generate on its GPIOs the required control signals.  
+The CPU prober and ARGB controllers are both entirely standalone, and the GPU probers need the varied manufacturers' softwares to get GPU stats.  
+Right now, only the CPU prober fully works on any machine after recompiling.  
+The ARGB controller works on Raspberry Pi 1-4, as compatibility with model 5 is not guaranteed by the library we used.
 
+## Compiling
+### ARGB controller
+On the Raspberry Pi, you first need to install the rpi_ws281x by following the instructions from [the library readme](https://github.com/jgarff/rpi_ws281x/blob/master/README.md).  
+After that, go to "src/ARGB Controller" and compile the code using the command below:  
+```
+gcc ARGB_controller.c -o ARGB_controller.x -lws2811 -lm
+```
 
-## Technical objectives by order of priority
-1. Controlling the ARGB strips
-   - [x] Making one LED work : controlling its perceived intensity (through PWM) and color, as well as other effects like breathing, blinking, etc.
-   - [x] Making all the LEDs of a strip work at once : ensuring that the addressing part of our algorithms work properly, ie if we want only one LED on in the middle, it must be alone in that state, and at the right place
-   - [x] Interfacing multiples strips at the same time : either using more pins of the Raspberry Pi or multiplexing the output in order to control the strips of each level independantly
-2. Gathering data from the cluster
-   - [ ] ~~Polling approach : make the Raspberry Pi connect to the cluster and ask it about its activity level on a periodic basis~~
-   OR
-   - [ ] Interrupt approach : make each cluster send data to the Raspberry pi periodically~~, when there is a big enough activity change, including turnin on/off the cluster, and hysteresis management~~
-3. Putting it all together
-   - [ ] Using the gathered data to control the strips : periodically update the pattern (polling) or change the pattern on demand (interrupt)
-4. Controlling the cluster
-   - [x] Effectively ordering shut downs without disturbing the normal function of the cluster
-   - [ ] ~~Using the gathered data from previous steps to establish the conditions for ordering a shutdown or a startup~~
-   - [ ] Establishing a user-friendly interface to customize varied parameters 
+### CPU Prober
+On the computer you want the prober to run on, go to "src/Probers" and compile the code using the command below:
+```
+g++ -O3 CPU_prober.cpp -o CPU_prober.x
+```
 
-## Further developments
-The aforementionned developments will be carried out at user level, and will not touch the kernel in any way.  
-However, if time allows it, it may be useful to develop a custom kernel module in order to maybe reduce the overhead and lower, even marginally, the cpu usage of the raspberry pi.
+## Running
+### ARGB controller
+On the Raspberry Pi, where your executable is located, you can run the controller by using the following format:
+```
+sudo ./ARGB_controller.x --sections {# of sections} --parallel {Single/Dual channel} --fifo-prefix {Prefix} [--pfifo_prefix {Prefix}] [--l1 {# of LEDs in section} --r1 {red value} --g1 {green value} --b1 {blue value} --m1 {effect} --tcpu1 {light level}] [--pl1 {# of LEDs in section} --pr1 {red value} --pg1 {green value} --pb1 {blue value} --pm1 {effect} --ptcpu1 {light level}]
+```
 
-## Controlling the RGB strips
-### The WS2812B protocol
-In this project, we intend to control an adressable LED strip that follows the WS2812B specification : using 4 wires per LED (VDD, GND, Data_In, Data_Out), it is possible to feed each LED with 24 bits (8 per color) using a PWM encoding. This encoding requires a frequency of 800kHz (1.25µs/bit), and represents the logical 0 by a duty cycle of 32% +- 12%, and the logical 1 by a duty cycle of 64% +- 12%. As such, each LED requires 30µs to receive all its control bits.  
-After receiving those 24 bits, an LED starts to act as a passthrough, letting all subsequent bits go from Data_In to Data_Out, until a reset code (50µs or more at electrical level of GND) is sent.  
-### Hardware modules on the Raspberry Pi
-Since timings need to be extremely tight and regular, wa can't simply drive the GPIOs through software alone.  
-Instead, we need to use one or more hardware peripherals that ensure a steady clock, including most notably the PWM, PCM, or SPI modules.  
-We shall control those modules through the WiringPi library, which offers easy interfaces to hardware modules, without requiring a kernel driver.
-### PWM module
+#### Arguments description
+- --sections : required, must be between 1 and 6. Allows to divide a single strip in up to 6 different zones
+- --parallel : enables a secondary control channel if set to 1. Uses only one if set to 0. Each LED strip needs one channel
+- --fifo-prefix : name or path of the Posix pipe that will be read for state and CPU usage for the main channel
+- --pfifo-prefix : name or path of the Posix pipe that will be read for state and CPU usage for the secondary channel (only required if --parallel is set to 1)
+- For each section of the main channel, with n ranging from 1 to 6 (depends on --sections parameter):
+    - --ln : number of LEDs in the section
+    - --rn : red intensity from 0 to 255 for the default effect
+    - --gn : green intensity from 0 to 255 for the default effect
+    - --bn : blue in intensity from 0 to 255 for the default effect
+    - --mn : default effect from the following : blink, chase, fill, fillrev, flow, breathe, idle, rainbow, comet, wave (case sensitive)
+    - --tcpun : intensity of the light (reflects a simulated CPU temperature) from 0 to 100
+- For each section of the secondary channel, with n ranging from 1 to 6 (depends on --sections parameter):
+    - --pln : number of LEDs in the section
+    - --prn : red intensity from 0 to 255 for the default effect
+    - --pgn : green intensity from 0 to 255 for the default effect
+    - --pbn : blue in intensity from 0 to 255 for the default effect
+    - --pmn : default effect from the following : blink, chase, fill, fillrev, flow, breathe, idle, rainbow, comet, wave (case sensitive)
+    - --ptcpun : intensity of the light (reflects a simulated CPU temperature) from 0 to 100
 
-#### 
+#### Arguments full example
+```
+sudo ./ARGB_controller.x --sections 6 --parallel 1 \
+  --l1 8  --r1 100 --g1 0 --b1 0 --m1 static --tcpu1 80 \
+  --l2 8  --r2 0 --g2 255 --b2 0 --m2 blink --tcpu2 70 \
+  --l3 8  --r3 0 --g3 0 --b3 255 --m3 chase --tcpu3 60 \
+  --l4 8  --r4 128 --g4 128 --b4 0 --m4 fill --tcpu4 50 \
+  --l5 8  --r5 0 --g5 128 --b5 128 --m5 fillrev --tcpu5 40 \
+  --l6 8  --r6 128 --g6 0 --b6 128 --m6 flow --tcpu6 30 \
+  --pl1 8 --pr1 255 --pg1 0 --pb1 0 --pm1 static --ptcpu1 80 \
+  --pl2 8 --pr2 0 --pg2 255 --pb2 0 --pm2 blink --ptcpu2 70 \
+  --pl3 8 --pr3 0 --pg3 0 --pb3 255 --pm3 chase --ptcpu3 60 \
+  --pl4 8 --pr4 128 --pg4 128 --pb4 0 --pm4 fill --ptcpu4 50 \
+  --pl5 8 --pr5 0 --pg5 128 --pb5 128 --pm5 fillrev --ptcpu5 40 \
+  --pl6 8 --pr6 128 --pg6 0 --pb6 128 --pm6 flow --ptcpu6 30 \
+  --fifo-prefix fifo --pfifo-prefix fifop
+```
 
-## Gathering and formatting the data
-###
+### CPU Prober
+#### As a standalone program
+To run the CPU prober, go to the folder where the executable is and run the following command : 
+```
+./CPU_prober.x -d {delay in ms} -h {host} -u{user} -p {port} -l {path to pipe}
+```
+#### Arguments description
+- -d : probing period. By default 500ms
+- -h : host where the RGB controller is. If on the same machine, put localhost (required argument)
+- -u : username of the account running the RBG controller. (required argument)
+- -p : ssh port. By default 22
+- -l : either absolute or relative path to the pipe used for sending CPU usage and state. Usually in the same folder as the RGB controller
+
+#### Behaviour while running
+By default, the prober sends a packet of the form "1,0" to indicate an idle state. It will pause after sending this packet.
+To unpause it and make it send data packets of the form "2,xxx", one has to send a SIGUSR1, either using the kill command, or using another program. The PID has to be known, and as such it is useful to launch the prober as detached from the terminal.  
+To pause packet sending and go back to idle mode, send a SIGUSR2.  
+The program sends a packet of the form "0,0" and closes upon receiving either a SIGINT or a SIGTERM.
+
+#### As a systemd service
+The cpu prober can be run as systemd service.
+For this purpose, you can edit the file found in src/Probers called "cpu_prober.service" to match all your required arguments. Note that the user and group has to be the one with access to your ssh keys linked to your Raspberry Pi.
+Copy the modified file to /etc/systemd/system, then in a terminal run the following commands : 
+```
+sudo systemctl daemon-reload
+```
+After that, you can run `sudo systemctl start cpu_prober.service` to laucnh the prober, and `sudo systemctl stop cpu_prober.service` to stop the service.  
+Run `sudo systemctl kill -s 10 cpu_prober.service` to start the periodic sending of packets, and run `sudo systemctl kill -s 12 cpu_prober.service` to pause the sending of packets.
